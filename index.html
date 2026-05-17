@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admitto — AI-guide till högskoleantagning</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #020817; color: #e2e8f0; font-family: 'Outfit', sans-serif; min-height: 100vh; display: flex; justify-content: center; }
+  #app { width: 100%; max-width: 700px; display: flex; flex-direction: column; min-height: 100vh; }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: #0f172a; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes bounce { 0%,80%,100% { transform:translateY(0); } 40% { transform:translateY(-6px); } }
+  @keyframes shimmer { 0%,100% { opacity:.5; } 50% { opacity:1; } }
+
+  /* GDPR banner */
+  #gdpr-banner { background:#0f2a1a; border-bottom:1px solid #166534; padding:10px 16px; display:flex; align-items:center; gap:10px; }
+  #gdpr-banner span.icon { font-size:16px; }
+  #gdpr-banner .text { flex:1; font-size:12px; color:#86efac; }
+  #gdpr-banner .text strong { color:#4ade80; }
+  #gdpr-banner button { background:none; border:none; color:#4ade80; cursor:pointer; font-size:16px; padding:2px 8px; }
+
+  /* Header */
+  header { background:#0a1628; border-bottom:1px solid #1e293b; padding:14px 16px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:20; }
+  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:18px; background:linear-gradient(90deg,#60a5fa,#818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-0.5px; }
+  .merit-badge { display:flex; align-items:center; gap:6px; background:#1e293b; border-radius:99px; padding:5px 12px; border:1px solid #334155; cursor:pointer; transition:border-color .3s; }
+  .merit-badge .dot { width:8px; height:8px; border-radius:50%; }
+  .merit-badge .val { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; }
+  .merit-badge .lbl { font-size:11px; color:#475569; }
+  .gdpr-mini { display:flex; align-items:center; gap:5px; background:#0f2a1a; border-radius:99px; padding:4px 10px; border:1px solid #166534; font-size:10px; color:#4ade80; font-weight:600; }
+  .nav-pills { margin-left:auto; display:flex; gap:4px; background:#0f172a; border-radius:10px; padding:4px; border:1px solid #1e293b; }
+  .nav-btn { padding:7px 12px; border-radius:8px; border:none; cursor:pointer; background:transparent; color:#64748b; font-size:12px; font-weight:600; font-family:'Outfit',sans-serif; transition:all .2s; display:flex; align-items:center; gap:5px; }
+  .nav-btn.active { background:#1d4ed8; color:#fff; }
+
+  /* Views */
+  .view { display:none; flex:1; flex-direction:column; }
+  .view.active { display:flex; }
+
+  /* Chat */
+  #chat-messages { flex:1; overflow-y:auto; padding:20px 16px; }
+  .welcome { animation:fadeUp .4s ease both; }
+  .welcome-title { text-align:center; padding:20px 0 24px; }
+  .welcome-title .emoji { font-size:44px; margin-bottom:12px; display:block; }
+  .welcome-title h1 { font-family:'Syne',sans-serif; font-size:26px; font-weight:800; letter-spacing:-.5px; margin-bottom:8px; background:linear-gradient(135deg,#e2e8f0,#94a3b8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .welcome-title p { color:#475569; font-size:14px; max-width:400px; margin:0 auto; line-height:1.7; }
+  .status-card { background:#0f172a; border:1px solid #1e293b; border-radius:16px; padding:16px; margin-bottom:16px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; text-align:center; }
+  .status-item .lbl { font-size:10px; color:#475569; margin-bottom:4px; font-weight:600; text-transform:uppercase; }
+  .status-item .val { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; }
+  .status-item .sub { font-size:10px; color:#334155; margin-top:2px; }
+  .gdpr-box { background:#0f2a1a; border:1px solid #166534; border-radius:12px; padding:12px 14px; margin-bottom:16px; display:flex; gap:10px; }
+  .gdpr-box .icon { font-size:18px; flex-shrink:0; }
+  .gdpr-box .title { font-size:12px; font-weight:700; color:#4ade80; margin-bottom:3px; }
+  .gdpr-box .body { font-size:12px; color:#86efac; line-height:1.6; }
+  .fill-prompt { background:linear-gradient(135deg,#1d4ed822,#7c3aed22); border:1px dashed #334155; border-radius:14px; padding:14px 16px; margin-bottom:16px; cursor:pointer; display:flex; align-items:center; gap:12px; }
+  .fill-prompt .icon { font-size:22px; }
+  .fill-prompt .t1 { font-size:13px; font-weight:600; color:#94a3b8; }
+  .fill-prompt .t2 { font-size:12px; color:#475569; margin-top:2px; }
+  .quick-lbl { font-size:11px; color:#475569; font-weight:600; letter-spacing:.5px; text-transform:uppercase; margin-bottom:8px; }
+  .quick-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+  .quick-btn { background:#0f172a; border:1px solid #1e293b; border-radius:12px; padding:11px 12px; cursor:pointer; text-align:left; color:#64748b; font-size:12.5px; font-family:'Outfit',sans-serif; transition:all .18s; }
+  .quick-btn:hover { background:#1e293b; border-color:#475569; color:#e2e8f0; }
+
+  /* Bubbles */
+  .bubble-row { display:flex; margin-bottom:10px; gap:8px; align-items:flex-end; }
+  .bubble-row.user { justify-content:flex-end; }
+  .avatar { width:28px; height:28px; border-radius:50%; flex-shrink:0; background:linear-gradient(135deg,#1d4ed8,#7c3aed); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff; font-family:'Syne',sans-serif; }
+  .bubble { max-width:78%; padding:10px 14px; font-size:13.5px; line-height:1.65; white-space:pre-wrap; }
+  .bubble.ai { border-radius:16px 16px 16px 4px; background:#1e293b; color:#cbd5e1; border:1px solid #334155; }
+  .bubble.user { border-radius:16px 16px 4px 16px; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; }
+  .typing { display:flex; gap:5px; align-items:center; padding:12px 16px; }
+  .typing-dot { width:7px; height:7px; border-radius:50%; background:#3b82f6; animation:bounce 1.2s infinite; }
+
+  /* Chat input */
+  #chat-input-area { background:#0a1628; border-top:1px solid #1e293b; padding:12px 14px 16px; }
+  #chat-input-row { display:flex; gap:8px; align-items:flex-end; }
+  #chat-input { flex:1; resize:none; border:1.5px solid #1e293b; border-radius:12px; padding:11px 14px; background:#0f172a; color:#e2e8f0; font-size:14px; font-family:'Outfit',sans-serif; line-height:1.5; max-height:100px; overflow-y:auto; transition:border-color .2s; }
+  #chat-input:focus { outline:none; border-color:#1d4ed8; }
+  #send-btn { width:42px; height:42px; border-radius:12px; border:none; background:#1e293b; color:#fff; cursor:pointer; font-size:16px; flex-shrink:0; transition:all .2s; }
+  #send-btn.ready { background:#1d4ed8; box-shadow:0 4px 14px #1d4ed855; }
+  #chat-footer { text-align:center; margin-top:8px; font-size:10.5px; color:#334155; }
+
+  /* Calculator */
+  #calc-view { overflow-y:auto; padding:16px 16px 40px; }
+  .merit-card { background:linear-gradient(135deg,#0f172a,#1e293b); border-radius:20px; padding:20px; display:flex; align-items:center; gap:20px; margin-bottom:14px; border:1px solid #334155; }
+  .merit-card svg { display:block; flex-shrink:0; }
+  .merit-main .lbl { font-size:11px; color:#475569; font-weight:600; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
+  .merit-main .val { font-family:'Syne',sans-serif; font-size:38px; font-weight:800; line-height:1; transition:color .4s; }
+  .merit-badge-pill { display:inline-block; margin-top:8px; padding:4px 12px; border-radius:99px; font-size:12px; font-weight:700; }
+  .merit-reach { text-align:center; }
+  .merit-reach .lbl { font-size:10px; color:#475569; margin-bottom:4px; font-weight:600; text-transform:uppercase; }
+  .merit-reach .val { font-family:'Syne',sans-serif; font-size:32px; font-weight:800; }
+  .merit-reach .sub { font-size:10px; color:#475569; }
+  .gdpr-small { background:#0f2a1a; border:1px solid #166534; border-radius:10px; padding:8px 12px; margin-bottom:12px; display:flex; align-items:center; gap:8px; font-size:11.5px; color:#86efac; }
+  .calc-tabs { display:flex; gap:4px; margin-bottom:14px; background:#0f172a; border-radius:12px; padding:4px; border:1px solid #1e293b; }
+  .calc-tab { flex:1; padding:8px 4px; border-radius:9px; border:none; cursor:pointer; background:transparent; color:#475569; font-size:11px; font-weight:600; font-family:'Outfit',sans-serif; transition:all .2s; }
+  .calc-tab.active { background:#1d4ed8; color:#fff; }
+  .calc-panel { display:none; animation:fadeUp .3s ease both; }
+  .calc-panel.active { display:block; }
+  .subject-row { background:#0f172a; border:1px solid #1e293b; border-radius:12px; padding:10px 14px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; margin-bottom:6px; transition:border-color .3s; }
+  .subject-name { font-size:13px; font-weight:600; color:#64748b; }
+  .subject-name.filled { color:#e2e8f0; }
+  .subject-credits { font-size:11px; color:#334155; margin-top:1px; }
+  .grade-btns { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; }
+  .grade-btn { width:30px; height:30px; border-radius:8px; border:none; background:#1e293b; color:#475569; font-family:'Syne',sans-serif; font-weight:800; font-size:12px; cursor:pointer; transition:all .15s; }
+  .extra-row { background:#0f172a; border:1px solid #1e293b; border-radius:12px; padding:13px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:all .2s; margin-bottom:6px; }
+  .extra-row.checked { background:#1d4ed815; border-color:#3b82f655; }
+  .extra-label { flex:1; font-size:13.5px; font-weight:600; color:#64748b; }
+  .extra-row.checked .extra-label { color:#93c5fd; }
+  .extra-pts { padding:3px 10px; border-radius:99px; background:#1d4ed833; color:#60a5fa; font-size:12px; font-weight:700; }
+  .extra-check { width:22px; height:22px; border-radius:7px; background:#1e293b; border:2px solid #334155; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; transition:all .2s; flex-shrink:0; }
+  .extra-row.checked .extra-check { background:#1d4ed8; border-color:#3b82f6; }
+  .hp-box { background:#0f172a; border:1px solid #1e293b; border-radius:16px; padding:20px; }
+  .hp-row { display:flex; align-items:center; gap:16px; margin-bottom:12px; }
+  #hp-slider { flex:1; accent-color:#7c3aed; cursor:pointer; }
+  #hp-val { font-family:'Syne',sans-serif; font-size:36px; font-weight:800; min-width:68px; text-align:right; transition:color .3s; }
+  .hp-bar-track { background:#1e293b; border-radius:99px; height:8px; overflow:hidden; }
+  .hp-bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,#7c3aed,#a78bfa); transition:width .4s cubic-bezier(.34,1.56,.64,1); }
+  .prog-header-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+  .prog-stat-box { background:#0f172a; border-radius:12px; padding:12px 14px; }
+  .prog-stat-box .lbl { font-size:10px; color:#475569; font-weight:600; margin-bottom:4px; text-transform:uppercase; }
+  .prog-stat-box .val { font-family:'Syne',sans-serif; font-size:26px; font-weight:800; }
+  .prog-row { background:#0f172a; border:1px solid #1e293b; border-radius:12px; padding:11px 14px; display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:10px; margin-bottom:6px; transition:all .3s; }
+  .prog-row.reachable { background:#0f1f0a; border-color:#22c55e33; }
+  .prog-name { font-size:13px; font-weight:600; color:#64748b; }
+  .prog-row.reachable .prog-name { color:#d1fae5; }
+  .prog-uni { font-size:10.5px; color:#475569; margin-top:1px; }
+  .prog-score { text-align:center; }
+  .prog-score .lbl { font-size:9.5px; color:#475569; margin-bottom:2px; }
+  .prog-score .val { font-size:11.5px; font-weight:700; font-family:'Syne',sans-serif; }
+  .prog-score .gap { font-size:9px; }
+  .prog-badge { padding:4px 9px; border-radius:99px; font-size:10.5px; font-weight:700; white-space:nowrap; }
+  .prog-badge.ok { background:#22c55e22; color:#4ade80; }
+  .prog-badge.nope { background:#f8717122; color:#f87171; }
+  .ask-ai-btn { width:100%; margin-top:12px; padding:13px; background:linear-gradient(135deg,#1d4ed8,#7c3aed); border:none; border-radius:14px; cursor:pointer; color:#fff; font-size:14px; font-weight:600; font-family:'Outfit',sans-serif; box-shadow:0 4px 20px #1d4ed855; }
+  .prog-note { margin-top:10px; font-size:11px; color:#334155; text-align:center; line-height:1.6; }
+  .info-box { background:#0f172a; border:1px solid #1e293b; border-radius:14px; padding:14px; margin-bottom:12px; font-size:12.5px; color:#64748b; line-height:1.7; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- GDPR Banner -->
+  <div id="gdpr-banner">
+    <span class="icon">🔒</span>
+    <div class="text"><strong>Integritetsskyddad: </strong>Dina betyg sparas aldrig på server. AI-rådgivaren tar emot anonymt meritvärde — aldrig ditt namn eller personnummer.</div>
+    <button onclick="document.getElementById('gdpr-banner').style.display='none'">✕</button>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">Admitto</div>
+    <div class="merit-badge" id="merit-badge" onclick="showView('calc')">
+      <div class="dot" id="merit-dot" style="background:#475569"></div>
+      <span class="val" id="merit-badge-val" style="color:#475569">—</span>
+      <span class="lbl">merit</span>
+    </div>
+    <div class="gdpr-mini">🔒 GDPR-säker</div>
+    <div class="nav-pills">
+      <button class="nav-btn active" id="nav-chat" onclick="showView('chat')">💬 Rådgivare</button>
+      <button class="nav-btn" id="nav-calc" onclick="showView('calc')">📊 Kalkylator</button>
+    </div>
+  </header>
+
+  <!-- CHAT VIEW -->
+  <div class="view active" id="chat-view" style="flex-direction:column;">
+    <div id="chat-messages">
+      <div class="welcome" id="welcome-screen">
+        <div class="welcome-title">
+          <span class="emoji">🎓</span>
+          <h1>Din guide till högskoleantagning</h1>
+          <p>Fyll i dina betyg i kalkylatorn — sedan ger jag dig personliga råd. Dina uppgifter lämnar aldrig din enhet.</p>
+        </div>
+        <div class="status-card">
+          <div class="status-item">
+            <div class="lbl">Meritvärde</div>
+            <div class="val" id="status-merit" style="color:#475569">—</div>
+            <div class="sub" id="status-merit-lbl">fyll i betyg</div>
+          </div>
+          <div class="status-item">
+            <div class="lbl">Betyg ifyllda</div>
+            <div class="val" id="status-filled" style="color:#334155">0/10</div>
+            <div class="sub">ämnen</div>
+          </div>
+          <div class="status-item">
+            <div class="lbl">Kan söka</div>
+            <div class="val" id="status-reach" style="color:#334155">—</div>
+            <div class="sub">program</div>
+          </div>
+        </div>
+        <div class="gdpr-box">
+          <div class="icon">🔒</div>
+          <div>
+            <div class="title">Hur vi skyddar din integritet</div>
+            <div class="body">Dina betyg lagras <strong>aldrig</strong> på en server. AI-rådgivaren tar emot ett anonymt meritvärde — ditt namn och personnummer ingår aldrig.</div>
+          </div>
+        </div>
+        <div class="fill-prompt" id="fill-prompt" onclick="showView('calc')">
+          <div class="icon">📊</div>
+          <div>
+            <div class="t1">Fyll i dina betyg för personlig rådgivning</div>
+            <div class="t2">Tryck här för att öppna kalkylatorn →</div>
+          </div>
+        </div>
+        <div class="quick-lbl">Vanliga frågor</div>
+        <div class="quick-grid">
+          <button class="quick-btn" onclick="sendMsg('Förklara hur meritvärdet räknas ut')">📊 Förklara hur meritvärdet räknas ut</button>
+          <button class="quick-btn" onclick="sendMsg('Ge mig tips för att höja HP-resultatet')">✏️ Ge mig tips för att höja HP-resultatet</button>
+          <button class="quick-btn" onclick="sendMsg('Vilka alternativ finns om jag inte kommer in?')">🌍 Vilka alternativ finns om jag inte kommer in?</button>
+          <button class="quick-btn" onclick="sendMsg('Kan jag komplettera gymnasiebetyg som vuxen?')">🔁 Kan jag komplettera gymnasiebetyg som vuxen?</button>
+        </div>
+      </div>
+      <div id="messages-container"></div>
+      <div id="typing" style="display:none">
+        <div class="bubble-row">
+          <div class="avatar">A</div>
+          <div class="bubble ai"><div class="typing"><div class="typing-dot" style="animation-delay:0s"></div><div class="typing-dot" style="animation-delay:.2s"></div><div class="typing-dot" style="animation-delay:.4s"></div></div></div>
+        </div>
+      </div>
+      <div id="chat-bottom"></div>
+    </div>
+    <div id="chat-input-area">
+      <div id="chat-input-row">
+        <textarea id="chat-input" rows="1" placeholder="Skriv din fråga om antagning..." oninput="onInputChange()" onkeydown="onKeyDown(event)"></textarea>
+        <button id="send-btn" onclick="sendMsg()">↑</button>
+      </div>
+      <div id="chat-footer">🔒 Inga personuppgifter skickas · Ej officiell tjänst · Verifiera alltid på antagning.se</div>
+    </div>
+  </div>
+
+  <!-- CALC VIEW -->
+  <div class="view" id="calc-view-wrapper" style="overflow-y:auto; padding:16px 16px 40px;">
+
+    <!-- Merit card -->
+    <div class="merit-card" id="merit-card">
+      <svg width="104" height="104" id="radial-svg">
+        <circle cx="52" cy="52" r="44" fill="none" stroke="#1e293b" stroke-width="9"/>
+        <circle cx="52" cy="52" r="44" fill="none" stroke="#475569" stroke-width="9"
+          stroke-dasharray="0 276.46" stroke-linecap="round"
+          transform="rotate(-90 52 52)" id="radial-arc"
+          style="transition:stroke-dasharray .6s cubic-bezier(.34,1.56,.64,1),stroke .4s;filter:drop-shadow(0 0 6px #47556988)"/>
+        <text x="52" y="48" text-anchor="middle" fill="#475569" id="radial-val"
+          style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;transition:fill .4s">0.0</text>
+        <text x="52" y="65" text-anchor="middle" fill="#475569"
+          style="font-family:'Outfit',sans-serif;font-size:10px">/ 22.5</text>
+      </svg>
+      <div class="merit-main" style="flex:1">
+        <div class="lbl">Ditt meritvärde</div>
+        <div class="val" id="merit-big" style="color:#475569">0.00</div>
+        <div class="merit-badge-pill" id="merit-pill" style="background:#1e293b;color:#475569;border:1px solid #334155">—</div>
+      </div>
+      <div class="merit-reach">
+        <div class="lbl">Kan söka</div>
+        <div class="val" id="merit-reach-val" style="color:#334155">0</div>
+        <div class="sub">program</div>
+      </div>
+    </div>
+
+    <div class="gdpr-small">🔒 Dina betyg sparas lokalt i webbläsaren och skickas aldrig till en server.</div>
+
+    <div class="calc-tabs">
+      <button class="calc-tab active" onclick="showCalcTab('betyg')">📚 Betyg</button>
+      <button class="calc-tab" onclick="showCalcTab('extra')">⭐ Meritpoäng</button>
+      <button class="calc-tab" onclick="showCalcTab('hp')">✏️ HP-prov</button>
+      <button class="calc-tab" onclick="showCalcTab('program')">🎯 Program</button>
+    </div>
+
+    <!-- BETYG -->
+    <div class="calc-panel active" id="panel-betyg">
+      <p style="font-size:12.5px;color:#475569;margin-bottom:12px;line-height:1.6">Välj betyg för varje kurs. Klicka igen för att avmarkera.</p>
+      <div id="subjects-list"></div>
+    </div>
+
+    <!-- MERITPOÄNG -->
+    <div class="calc-panel" id="panel-extra">
+      <div class="info-box">Meritpoäng läggs på grundmeritvärdet — max <strong style="color:#60a5fa">2.5 extra poäng</strong>. Välj de kurser du läst med minst E.</div>
+      <div id="extras-list"></div>
+    </div>
+
+    <!-- HP -->
+    <div class="calc-panel" id="panel-hp">
+      <div class="hp-box">
+        <div class="info-box" style="margin-bottom:16px">Högskolprovet ger ett normerat resultat <strong style="color:#a78bfa">0.00–2.00</strong> och används i urvalsgrupp BII, separat från ditt meritvärde.</div>
+        <div class="hp-row">
+          <input type="range" id="hp-slider" min="0" max="2" step="0.01" value="0" oninput="onHpChange()">
+          <div id="hp-val" style="color:#334155">0.00</div>
+        </div>
+        <div class="hp-bar-track"><div class="hp-bar-fill" id="hp-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- PROGRAM -->
+    <div class="calc-panel" id="panel-program">
+      <div class="prog-header-grid">
+        <div class="prog-stat-box" style="border:1px solid #334155">
+          <div class="lbl">BI (Betyg)</div>
+          <div class="val" id="prog-merit-val" style="color:#475569">—</div>
+        </div>
+        <div class="prog-stat-box" style="border:1px solid #7c3aed33">
+          <div class="lbl">BII (HP)</div>
+          <div class="val" id="prog-hp-val" style="color:#334155">—</div>
+        </div>
+      </div>
+      <div id="programs-list"></div>
+      <button class="ask-ai-btn" onclick="askAiAboutProfile()">💬 Fråga AI-rådgivaren om min profil →</button>
+      <div class="prog-note">⚠️ Exempeldata för illustration · Verifiera alltid på uhr.se · 🔒 Inga personuppgifter skickas</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const GRADE_POINTS = {A:20,B:17.5,C:15,D:12.5,E:10,F:0};
+const GRADE_COLORS = {A:"#4ade80",B:"#a3e635",C:"#facc15",D:"#fb923c",E:"#f87171",F:"#64748b"};
+const SUBJECTS = [
+  {id:"sv", label:"Svenska 3", credits:100},
+  {id:"en", label:"Engelska 6", credits:100},
+  {id:"ma", label:"Matematik 2", credits:100},
+  {id:"sh", label:"Samhällskunskap 1b", credits:100},
+  {id:"hi", label:"Historia 1b", credits:50},
+  {id:"re", label:"Religionskunskap 1", credits:50},
+  {id:"nk", label:"Naturkunskap 2", credits:100},
+  {id:"id1", label:"Idrott & hälsa 1", credits:100},
+  {id:"pr1", label:"Programkurs 1", credits:100},
+  {id:"pr2", label:"Programkurs 2", credits:100},
+];
+const MERIT_EXTRAS = [
+  {id:"lang3", label:"Moderna språk steg 3", pts:0.5},
+  {id:"lang4", label:"Moderna språk steg 4", pts:1.0},
+  {id:"lang5", label:"Moderna språk steg 5", pts:1.5},
+  {id:"maD",   label:"Matematik 4 (D)", pts:0.5},
+  {id:"maE",   label:"Matematik 5 (E)", pts:1.0},
+];
+const PROGRAMS = [
+  {name:"Läkarprogrammet", uni:"KI", bi:21.72, bii:0.97},
+  {name:"Civilingenjör Datateknik", uni:"KTH", bi:20.72, bii:0.97},
+  {name:"Juristprogrammet", uni:"SU", bi:20.00, bii:0.95},
+  {name:"Ekonomprogrammet", uni:"HHS", bi:20.45, bii:0.96},
+  {name:"Psykologprogrammet", uni:"GU", bi:19.95, bii:0.93},
+  {name:"Arkitektprogrammet", uni:"Chalmers", bi:19.50, bii:0.91},
+  {name:"Sjuksköterskeprogrammet", uni:"KI", bi:16.50, bii:0.72},
+  {name:"Socionomprogrammet", uni:"GU", bi:15.25, bii:0.66},
+  {name:"Lärarprogrammet F-3", uni:"SU", bi:14.00, bii:0.55},
+  {name:"Brandingenjör", uni:"LTH", bi:17.80, bii:0.80},
+];
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let grades = {}, extras = {}, hp = 0, merit = 0;
+let messages = [], loading = false, chatStarted = false;
+
+// ─── CALC ───────────────────────────────────────────────────────────────────
+function calcMerit() {
+  let pts = 0, creds = 0;
+  SUBJECTS.forEach(s => {
+    const g = grades[s.id];
+    if (g !== undefined && GRADE_POINTS[g] !== undefined) {
+      pts += GRADE_POINTS[g] * s.credits;
+      creds += s.credits;
+    }
+  });
+  const base = creds > 0 ? pts / creds : 0;
+  const bonus = MERIT_EXTRAS.filter(m => extras[m.id]).reduce((a,m) => a + m.pts, 0);
+  return Math.min(22.5, base + bonus);
+}
+
+function meritColor(m) {
+  if (m === 0) return "#475569";
+  if (m < 14) return "#f87171";
+  if (m < 17) return "#fb923c";
+  if (m < 19) return "#facc15";
+  return "#4ade80";
+}
+
+function meritLabel(m) {
+  if (m === 0) return "—";
+  if (m < 14) return "Lågt";
+  if (m < 17) return "Godkänt";
+  if (m < 19) return "Bra";
+  if (m < 21) return "Mycket bra";
+  return "Utmärkt";
+}
+
+function reachableCount() {
+  return PROGRAMS.filter(p => merit >= p.bi || (hp > 0 && hp >= p.bii)).length;
+}
+
+function updateAll() {
+  merit = calcMerit();
+  const col = meritColor(merit);
+  const lbl = meritLabel(merit);
+  const reach = reachableCount();
+  const filled = Object.keys(grades).filter(k => grades[k] !== undefined).length;
+
+  // Radial
+  const circ = 2 * Math.PI * 44;
+  const arc = document.getElementById('radial-arc');
+  arc.setAttribute('stroke-dasharray', `${circ*(merit/22.5)} ${circ}`);
+  arc.setAttribute('stroke', col);
+  arc.style.filter = `drop-shadow(0 0 6px ${col}88)`;
+  document.getElementById('radial-val').textContent = merit.toFixed(1);
+  document.getElementById('radial-val').setAttribute('fill', col);
+
+  // Merit card
+  const mb = document.getElementById('merit-big');
+  mb.textContent = merit.toFixed(2);
+  mb.style.color = col;
+  mb.style.textShadow = merit > 0 ? `0 0 20px ${col}55` : 'none';
+  const pill = document.getElementById('merit-pill');
+  pill.textContent = lbl;
+  pill.style.background = col + '22';
+  pill.style.color = col;
+  pill.style.border = `1px solid ${col}44`;
+  document.getElementById('merit-reach-val').textContent = reach;
+  document.getElementById('merit-reach-val').style.color = reach > 0 ? '#4ade80' : '#334155';
+  document.getElementById('merit-card').style.borderColor = col + '33';
+
+  // Badge
+  document.getElementById('merit-badge').style.borderColor = merit > 0 ? col + '44' : '#334155';
+  document.getElementById('merit-dot').style.background = col;
+  document.getElementById('merit-dot').style.boxShadow = merit > 0 ? `0 0 6px ${col}` : 'none';
+  const bv = document.getElementById('merit-badge-val');
+  bv.textContent = merit > 0 ? merit.toFixed(2) : '—';
+  bv.style.color = col;
+
+  // Status card
+  document.getElementById('status-merit').textContent = merit > 0 ? merit.toFixed(2) : '—';
+  document.getElementById('status-merit').style.color = col;
+  document.getElementById('status-merit-lbl').textContent = lbl;
+  document.getElementById('status-filled').textContent = `${filled}/10`;
+  document.getElementById('status-filled').style.color = filled > 0 ? '#60a5fa' : '#334155';
+  document.getElementById('status-reach').textContent = (merit > 0 || hp > 0) ? `${reach} st` : '—';
+  document.getElementById('status-reach').style.color = reach > 0 ? '#4ade80' : '#334155';
+
+  // Fill prompt visibility
+  document.getElementById('fill-prompt').style.display = merit === 0 ? 'flex' : 'none';
+
+  // Program tab
+  const pmv = document.getElementById('prog-merit-val');
+  pmv.textContent = merit.toFixed(2);
+  pmv.style.color = col;
+  const phv = document.getElementById('prog-hp-val');
+  phv.textContent = hp > 0 ? hp.toFixed(2) : '—';
+  phv.style.color = hp > 0 ? '#a78bfa' : '#334155';
+  renderPrograms();
+  renderSubjects();
+}
+
+// ─── RENDER SUBJECTS ────────────────────────────────────────────────────────
+function renderSubjects() {
+  const list = document.getElementById('subjects-list');
+  list.innerHTML = '';
+  SUBJECTS.forEach(s => {
+    const g = grades[s.id];
+    const col = g ? GRADE_COLORS[g] : '#1e293b';
+    const row = document.createElement('div');
+    row.className = 'subject-row';
+    row.style.borderColor = g ? col + '44' : '#1e293b';
+    row.innerHTML = `
+      <div>
+        <div class="subject-name ${g ? 'filled' : ''}">${s.label}</div>
+        <div class="subject-credits">${s.credits} hp</div>
+      </div>
+      <div class="grade-btns">
+        ${['A','B','C','D','E','F'].map(gr => `
+          <button class="grade-btn" onclick="setGrade('${s.id}','${gr}')"
+            style="background:${grades[s.id]===gr ? GRADE_COLORS[gr] : '#1e293b'};color:${grades[s.id]===gr ? '#0f172a' : '#475569'};box-shadow:${grades[s.id]===gr ? `0 0 8px ${GRADE_COLORS[gr]}66` : 'none'}"
+          >${gr}</button>
+        `).join('')}
+      </div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function setGrade(id, gr) {
+  grades[id] = grades[id] === gr ? undefined : gr;
+  updateAll();
+}
+
+// ─── RENDER EXTRAS ──────────────────────────────────────────────────────────
+function renderExtras() {
+  const list = document.getElementById('extras-list');
+  list.innerHTML = '';
+  MERIT_EXTRAS.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'extra-row' + (extras[m.id] ? ' checked' : '');
+    row.onclick = () => { extras[m.id] = !extras[m.id]; renderExtras(); updateAll(); };
+    row.innerHTML = `
+      <div class="extra-label">${m.label}</div>
+      <div class="extra-pts">+${m.pts.toFixed(1)}</div>
+      <div class="extra-check">${extras[m.id] ? '✓' : ''}</div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// ─── HP ─────────────────────────────────────────────────────────────────────
+function onHpChange() {
+  hp = parseFloat(document.getElementById('hp-slider').value);
+  const col = hp===0?'#334155':hp<0.7?'#f87171':hp<1.0?'#fb923c':hp<1.5?'#facc15':'#4ade80';
+  document.getElementById('hp-val').textContent = hp.toFixed(2);
+  document.getElementById('hp-val').style.color = col;
+  document.getElementById('hp-bar').style.width = `${(hp/2)*100}%`;
+  updateAll();
+}
+
+// ─── RENDER PROGRAMS ────────────────────────────────────────────────────────
+function renderPrograms() {
+  const list = document.getElementById('programs-list');
+  list.innerHTML = '';
+  PROGRAMS.forEach(p => {
+    const okBi = merit >= p.bi;
+    const okBii = hp > 0 && hp >= p.bii;
+    const ok = okBi || okBii;
+    const row = document.createElement('div');
+    row.className = 'prog-row' + (ok ? ' reachable' : '');
+    row.innerHTML = `
+      <div>
+        <div class="prog-name">${p.name}</div>
+        <div class="prog-uni">${p.uni}</div>
+      </div>
+      <div class="prog-score">
+        <div class="lbl">BI</div>
+        <div class="val" style="color:${okBi?'#4ade80':'#f87171'}">${p.bi.toFixed(2)}</div>
+        <div class="gap" style="color:${okBi?'#4ade80':'#f87171'}">${okBi?'✓':'-'+(p.bi-merit).toFixed(2)}</div>
+      </div>
+      <div class="prog-score">
+        <div class="lbl">BII</div>
+        <div class="val" style="color:${okBii?'#4ade80':'#475569'}">${p.bii.toFixed(2)}</div>
+        <div class="gap" style="color:${okBii?'#4ade80':hp>0?'#f87171':'#334155'}">${okBii?'✓':hp>0?'-'+(p.bii-hp).toFixed(2):'—'}</div>
+      </div>
+      <div class="prog-badge ${ok?'ok':'nope'}">${ok?'✓ Kan söka':'✗ Ej nådd'}</div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// ─── NAVIGATION ─────────────────────────────────────────────────────────────
+function showView(name) {
+  document.getElementById('chat-view').classList.toggle('active', name==='chat');
+  document.getElementById('calc-view-wrapper').classList.toggle('active', name==='calc');
+  document.getElementById('nav-chat').classList.toggle('active', name==='chat');
+  document.getElementById('nav-calc').classList.toggle('active', name==='calc');
+}
+
+function showCalcTab(name) {
+  document.querySelectorAll('.calc-tab').forEach((b,i) => {
+    const tabs = ['betyg','extra','hp','program'];
+    b.classList.toggle('active', tabs[i]===name);
+  });
+  document.querySelectorAll('.calc-panel').forEach(p => p.classList.remove('active'));
+  const map = {betyg:'panel-betyg',extra:'panel-extra',hp:'panel-hp',program:'panel-program'};
+  document.getElementById(map[name]).classList.add('active');
+}
+
+// ─── GDPR-SAFE PROFILE ──────────────────────────────────────────────────────
+function buildAnonProfile() {
+  const filled = SUBJECTS.filter(s => grades[s.id]).length;
+  const dist = {};
+  Object.values(grades).forEach(g => { if(g) dist[g] = (dist[g]||0)+1; });
+  const bonus = MERIT_EXTRAS.filter(m => extras[m.id]).reduce((a,m)=>a+m.pts,0);
+  const reachable = PROGRAMS.filter(p => merit>=p.bi||(hp>0&&hp>=p.bii)).map(p=>p.name);
+  const notReach = PROGRAMS.filter(p => merit<p.bi&&hp<p.bii).map(p=>`${p.name} (kräver BI: ${p.bi})`);
+  return `[ANONYM STUDENTPROFIL — Inga personuppgifter]
+Meritvärde (BI): ${merit.toFixed(2)} / 22.50
+HP-resultat (BII): ${hp>0?hp.toFixed(2):"ej angivet"}
+Antal ämnen: ${filled}/10
+Betygsfördelning: ${Object.entries(dist).map(([g,n])=>`${n}×${g}`).join(', ')||'inga'}
+Meritpoängsbonus: +${bonus.toFixed(1)}
+Program inom räckhåll: ${reachable.join(', ')||'inga ännu'}
+Ej nådda (topp 3): ${notReach.slice(0,3).join('; ')||'alla nådda'}
+[Inga namn, personnummer eller personlig data ingår]`;
+}
+
+// ─── CHAT ───────────────────────────────────────────────────────────────────
+const SYSTEM = `Du är en expert på svensk högskoleantagning och hjälper studenter via Admitto.
+Du tar emot en anonym profil med ENBART meritvärde och poängdata — aldrig namn eller personnummer.
+Hjälp med: meritvärde, urvalsgrupper (BI/BII/SA), meritpoäng, HP, antagning.se, alternativa vägar (YH, folkhögskola, komvux, utlandsstudier), antagningspoängtrender, CSN.
+Svara på svenska, var konkret och uppmuntrande. Max 3–4 meningar per stycke. Referera aktivt till studentens profil.`;
+
+async function sendMsg(text) {
+  const txt = text || document.getElementById('chat-input').value.trim();
+  if (!txt || loading) return;
+  document.getElementById('chat-input').value = '';
+  onInputChange();
+
+  if (!chatStarted) {
+    chatStarted = true;
+    document.getElementById('welcome-screen').style.display = 'none';
+  }
+  showView('chat');
+
+  messages.push({role:'user', content:txt});
+  renderMessages();
+  loading = true;
+  document.getElementById('typing').style.display = 'block';
+  scrollBottom();
+
+  const profile = buildAnonProfile();
+  const apiMsgs = messages.map((m,i) => ({
+    role: m.role,
+    content: (m.role==='user' && i===messages.length-1)
+      ? `${profile}\n\nStudentens fråga: ${m.content}`
+      : m.content
+  }));
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM,
+        messages: apiMsgs,
+      })
+    });
+    const data = await res.json();
+    const reply = (data.content||[]).map(b=>b.text||'').join('') || 'Något gick fel.';
+    messages.push({role:'assistant', content:reply});
+  } catch(e) {
+    messages.push({role:'assistant', content:'Kunde inte nå AI:n just nu. Försök igen om en stund.'});
+  }
+
+  loading = false;
+  document.getElementById('typing').style.display = 'none';
+  renderMessages();
+  scrollBottom();
+}
+
+function renderMessages() {
+  const c = document.getElementById('messages-container');
+  c.innerHTML = messages.map(m => m.role==='user'
+    ? `<div class="bubble-row user"><div class="bubble user">${m.content}</div></div>`
+    : `<div class="bubble-row"><div class="avatar">A</div><div class="bubble ai">${m.content}</div></div>`
+  ).join('');
+}
+
+function scrollBottom() {
+  setTimeout(() => document.getElementById('chat-bottom').scrollIntoView({behavior:'smooth'}), 50);
+}
+
+function onInputChange() {
+  const v = document.getElementById('chat-input').value.trim();
+  const btn = document.getElementById('send-btn');
+  btn.classList.toggle('ready', v.length > 0 && !loading);
+}
+
+function onKeyDown(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+
+function askAiAboutProfile() {
+  const gap = PROGRAMS.filter(p => merit<p.bi && hp<p.bii);
+  const q = gap.length>0 && merit>0
+    ? `Jag har meritvärde ${merit.toFixed(2)} och HP ${hp>0?hp.toFixed(2):"ej skrivet"}. Hur kan jag förbättra mina chanser att komma in på ${gap[0].name}?`
+    : 'Baserat på min profil, vad bör jag tänka på nu i antagningsprocessen?';
+  sendMsg(q);
+}
+
+// ─── INIT ───────────────────────────────────────────────────────────────────
+renderSubjects();
+renderExtras();
+renderPrograms();
+updateAll();
+</script>
+</body>
+</html>
